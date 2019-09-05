@@ -131,13 +131,17 @@ for indx in range(len(devText)):
             devY[indx])
         errors.append(error)
 
-np.random.seed(2)
+np.random.seed(2) #what is this trying to do???
 print("Random dev error: \n {} \n \n {} \n \n{}".format(
         np.random.choice(errors,1),
         np.random.choice(errors,1),
         np.random.choice(errors,1))
      )
  #%% REGULARIZATION
+ # Regularization prevents over fitting using a parameter C. Standard C is 1 if not 
+ #specificied. The smaller the C the better the regularization. Regularization 
+ #creates a cost for overfitting training data. This allows training and testing outcomes
+ #to be more similar
  lr = LogisticRegression(C=.5)
 lr.fit(trainX, trainY)
 
@@ -158,3 +162,48 @@ lr.fit(trainX, trainY)
 print("Logistic Regression Train:", lr.score(trainX, trainY))
 print("Logistic Regression Dev:", lr.score(devX, devY))
 print("--")
+
+#%% ADDING N-GRAMS
+#N grams capture some dependencies in ordering of words. You can specify how many words 
+#should be together for analysis. eg bi-gram is a pair of words, tri-gram is three words 
+#together, etc
+
+# Set that word has to appear at least 5 times to be in vocab
+min_df = 5
+ngram_range = (1,3)
+max_features = 5000
+countVecNgram = CountVectorizer(min_df = min_df, ngram_range = ngram_range, max_features=max_features)
+# Learn vocabulary from train set
+countVecNgram.fit(trainText)
+
+# Transform list of review to matrix of bag-of-word vectors
+trainXNgram = countVecNgram.transform(trainText)
+devXNgram = countVecNgram.transform(devText)
+testXNgram = countVecNgram.transform(testText)
+
+#run classifiers on vectors
+lrNgram = LogisticRegression(C=1)
+lrNgram.fit(trainXNgram, trainY)
+print("Logistic Regression Train:", lrNgram.score(trainXNgram, trainY))
+print("Logistic Regression Dev:", lrNgram.score(devXNgram, devY))
+print("--")
+
+lrNgram = LogisticRegression(C=.5)
+lrNgram.fit(trainXNgram, trainY)
+print("Logistic Regression Train:", lrNgram.score(trainXNgram, trainY))
+print("Logistic Regression Dev:", lrNgram.score(devXNgram, devY))
+print("--")
+
+lrNgram = LogisticRegression(C=.1)
+lrNgram.fit(trainXNgram, trainY)
+print("Logistic Regression Train:", lrNgram.score(trainXNgram, trainY))
+print("Logistic Regression Dev:", lrNgram.score(devXNgram, devY))
+print("--")
+
+lrNgram = LogisticRegression(C=.01)
+lrNgram.fit(trainXNgram, trainY)
+print("Logistic Regression Train:", lrNgram.score(trainXNgram, trainY))
+print("Logistic Regression Dev:", lrNgram.score(devXNgram, devY))
+print("--")
+
+print("Logistic Regression Test:", lrNgram.score(testXNgram, testY))
