@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Sep  6 15:26:17 2019
+Prperty prediction exercise
+
+@author: nyamewaa
+"""
+#%% LOADING IN DATA
+!wget -c https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+!chmod +x Miniconda3-latest-Linux-x86_64.sh
+!bash ./Miniconda3-latest-Linux-x86_64.sh -b -f -p /usr/local
+!conda create -q -y --prefix /usr/local -c conda-forge rdkit rdkit scikit-learn
+
+import sys
+sys.path.append('/usr/local/lib/python3.7/site-packages/')
+import math
+import os
+import random
+from typing import Union, List, Dict
+import numpy as np
+
+print( sys.version)
+from rdkit import Chem, DataStructs
+from rdkit.Chem import AllChem
+from sklearn.metrics import mean_squared_error
+
+!wget https://raw.githubusercontent.com/yala/introML_chem/master/lab1/data/chem/delaney_train.csv
+!wget https://raw.githubusercontent.com/yala/introML_chem/master/lab1/data/chem/delaney_val.csv
+!wget https://raw.githubusercontent.com/yala/introML_chem/master/lab1/data/chem/delaney_test.csv
+
+def morgan_fingerprint(smiles: str, radius: int = 3, num_bits: int = 2048) -> np.ndarray:
+  mol = Chem.MolFromSmiles(smiles)
+  morgan_vect = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=num_bits)
+  morgan_fp = np.zeros((1,))
+  DataStructs.ConvertToNumpyArray(morgan_vect, morgan_fp)
+  
+  return morgan_fp
+
+class MoleculeDatapoint:
+  def __init__(self, smiles: str, target: float):
+    self.smiles = smiles
+    self.target = target
+    self.morgan = morgan_fingerprint(smiles)
+    
+class MoleculeDataset:
+  def __init__(self, data: List[MoleculeDatapoint]):
+    self.data = data
+    
+  def smiles(self) -> List[str]:
+    return [d.smiles for d in self.data]
+  
+  def targets(self) -> List[float]:
+    return [d.target for d in self.data]
+  
+  def morgans(self) -> List[np.ndarray]:
+    return [d.morgan for d in self.data]
+
+def get_data(split: str) -> MoleculeDataset:
+  data_path = 'delaney_{}.csv'.format(split)
+  with open(data_path) as f:
+    f.readline()
+    data = []
+    for line in f:
+      smiles, target = line.strip().split(',')
+      target = float(target)
+      data.append(MoleculeDatapoint(smiles, target))
+      
+  return MoleculeDataset(data)
+
+
+def rmse(targets: List[float], preds: List[float]) -> float:
+    return math.sqrt(mean_squared_error(targets, preds))
+
+# Load train/val/test data
+train_data = get_data('delaney_train')
+val_data = get_data('delaney_val')
+test_data = get_data('delaney_test')
+
+#%% BUILDING MODEL TO AND EXPERIMENTATION TO GET RSME
+
+
