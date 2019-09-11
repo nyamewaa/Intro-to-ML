@@ -137,7 +137,7 @@ def train_epoch( model, train_loader, optimizer, epoch):
     eval_epoch(model,  dev_loader, "Dev")
     print("---")
     
-#%%
+#%% EXPERIMENT WITH MLP
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
@@ -161,3 +161,8 @@ for epoch in range(1, epochs + 1):
     train_epoch(model, train_loader, optimizer, epoch)
     eval_epoch(model,  dev_loader, "Dev")
     print("---")
+    
+
+#%% RUN MODEL ON TEST IMAGES
+eval_epoch(model,  test_loader, "Test")
+    

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+    #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Mon Sep  9 16:28:21 2019
@@ -12,8 +12,7 @@ from wheel.pep425tags import get_abbr_impl, get_impl_ver, get_abi_tag
 platform = '{}{}-{}'.format(get_abbr_impl(), get_impl_ver(), get_abi_tag())
 
 accelerator = 'cu80' if path.exists('/opt/bin/nvidia-smi') else 'cpu'
-
-!pip install -q http://download.pytorch.org/whl/{accelerator}/torch-0.4.0-{platform}-linux_x86_64.whl torchvision==0.2.0
+#!pip install -q http://download.pytorch.org/whl/{accelerator}/torch-0.4.0-{platform}-linux_x86_64.whl torchvision==0.2.0
 import torch
 print(torch.__version__)
 print(torch.cuda.is_available())
@@ -57,3 +56,5 @@ y=a*(x*x)+b
 print (y)
 y.backward()
 print("x.grad={}".format(x.grad))
+#
+
