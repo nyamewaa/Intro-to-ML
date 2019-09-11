@@ -47,8 +47,7 @@ dev = [all_train[i] for i in range(num_train,len(all_train))]
 test = datasets.MNIST('data', train=False, download=True, 
                       transform=normalize_image)
 #%%
-        
-#plotting some of the imaegs from the training set. This doesnt work because there is no
+#plotting some of the images from the training set. This doesnt work because there is no
 #function plot_images
 all_train = datasets.MNIST('data', train=True, download=True)
 # images = [tr[0] for tr in all_train[:9]]
@@ -58,7 +57,7 @@ for i in range(num_examples):
   images.append(all_train[i][0])
   labels.append(all_train[i][1])
     
-plot_images(images, labels)
+imgplot=plt.imshow(images, labels)
 train[0][0].size()
 #%% BUILDING A MODEL
 
@@ -165,4 +164,5 @@ for epoch in range(1, epochs + 1):
 
 #%% RUN MODEL ON TEST IMAGES
 eval_epoch(model,  test_loader, "Test")
+
     
