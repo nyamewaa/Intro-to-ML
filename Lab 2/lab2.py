@@ -22,11 +22,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision
 from torchvision import datasets, transforms
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 
+classes=('0','1','2','3','4','5','6','7','8','9')
 #%%
 # Img mean value of .13, and stdv of .31 were computed across entire train set
 # in prior work
@@ -39,26 +41,45 @@ normalize_image = transforms.Compose([
 
 #%% Importing images
 # Dataset is loaded from torchvision
-all_train = datasets.MNIST('data', train=True, download=True, transform=normalize_image)
+trainset = torchvision.datasets.MNIST(root='./data', train=True,
+                                        download=True, transform=normalize_image)
 
-num_train = int(len(all_train)*.8)
-train = [all_train[i] for i in range(num_train)]
-dev = [all_train[i] for i in range(num_train,len(all_train))]
-test = datasets.MNIST('data', train=False, download=True, 
-                      transform=normalize_image)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+                                          shuffle=True)
 #%%
-#plotting some of the images from the training set. This doesnt work because there is no
+num_train = int(len(trainset)*.8)
+dev = [trainset[i] for i in range(num_train,len(trainset))]
+
+
+
+#%%
+testset = torchvision.datasets.MNIST(root='./data', train=False,
+                                       download=True, transform=normalize_image)
+
+
+
+#%% plotting some of the images from the training set. This doesnt work because there is no
 #function plot_images
-all_train = datasets.MNIST('data', train=True, download=True)
-# images = [tr[0] for tr in all_train[:9]]
-num_examples = 9 
-images, labels = [], []
-for i in range(num_examples):
-  images.append(all_train[i][0])
-  labels.append(all_train[i][1])
-    
-imgplot=plt.imshow(images, labels)
-train[0][0].size()
+
+# functions to show an image
+
+
+def imshow(img):
+    img = img / 2 + 0.3081    # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+
+
+# get some random training images
+dataiter = iter(trainloader)
+images, labels = dataiter.next()
+
+# show images
+imshow(torchvision.utils.make_grid(images))
+# print labels
+print(' '.join('%5s' % classes[labels[j]] for j in range(4)))
+
 #%% BUILDING A MODEL
 
 class Model(nn.Module):
@@ -78,18 +99,21 @@ batch_size = 64
 epochs = 10
 lr = .01
 momentum = 0.5
-train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
-dev_loader = torch.utils.data.DataLoader(dev, batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=True)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
+                                          shuffle=True)
+devloader= torch.utils.data.DataLoader(dev, batch_size=batch_size,
+                                         shuffle=True)
+testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
+                                         shuffle=True)
 model = Model()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
-#%% TRAINING MODEL
-def train_epoch( model, train_loader, optimizer, epoch):
+#%% TRAINING MODEL DEFINITION
+def train_epoch( model, trainloader, optimizer, epoch):
     model.train() # Set the nn.Module to train mode. 
     total_loss = 0
     correct = 0
-    num_samples = len(train_loader.dataset)
-    for batch_idx, (x, target) in enumerate(train_loader): #1) get batch
+    num_samples = len(trainloader.dataset)
+    for batch_idx, (x, target) in enumerate(trainloader): #1) get batch
         # Reset gradient data to 0
         optimizer.zero_grad()
         # Get prediction for batch
@@ -112,31 +136,31 @@ def train_epoch( model, train_loader, optimizer, epoch):
             num_samples,
             100. * correct / num_samples))
 #%% DEFINE EVALUATION LOOP
-    def eval_epoch(model, test_loader, name):
-        model.eval()
-        test_loss = 0
-        correct = 0
-        for data, target in test_loader:
-            output = model(data)
+def eval_epoch(model, testloader, name):
+    model.eval()
+    test_loss = 0
+    correct = 0
+    for data, target in testloader:
+        output = model(data)
         test_loss += F.cross_entropy(output, target).item() # sum up batch loss
         pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
         correct += pred.eq(target.view_as(pred)).sum().item()
 
-        test_loss /= len(test_loader.dataset)
-        print('\n{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    test_loss /= len(testloader.dataset)
+    print('\n{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         name,
         test_loss, 
         correct, 
-        len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+        len(testloader.dataset),
+        100. * correct / len(testloader.dataset)))
     
-    #%% TRAINING MODEL
-    for epoch in range(1, epochs + 1):
-        train_epoch(model, train_loader, optimizer, epoch)
-    eval_epoch(model,  dev_loader, "Dev")
+#%% TRAINING THE MODEL
+for epoch in range(1, epochs + 1):
+    train_epoch(model, trainloader, optimizer, epoch)
+    eval_epoch(model,  devloader, "Dev")
     print("---")
     
-#%% EXPERIMENT WITH MLP
+#%% EXPERIMENT WITH MLP (MULTILAYER PERCEPTRON)
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
@@ -157,12 +181,65 @@ model = Model()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
 
 for epoch in range(1, epochs + 1):
-    train_epoch(model, train_loader, optimizer, epoch)
-    eval_epoch(model,  dev_loader, "Dev")
-    print("---")
+        train_epoch(model, trainloader, optimizer, epoch)
+        eval_epoch(model,  devloader, "Dev")
+        print("---")
     
 
 #%% RUN MODEL ON TEST IMAGES
-eval_epoch(model,  test_loader, "Test")
+eval_epoch(model,  testloader, "Test")
 
+#%% EXPERIMENT WITH MLP custom model
+class Model(nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+        self.conv1 = nn.Conv2d(3,6,5)
+        self.pool = nn.MaxPool2d(2,2)
+        self.conv2 = nn.Conv2d(6,16,5)
+        self.fc1 = nn.Linear(16*5*5, 200)
+        self.fc2 = nn.Linear(200, 200)
+        self.fc3 = nn.Linear(200, 10)
+        
+
+    def forward(self, x):
+        x=self.pool(F.relu(self.conv1(x)))
+        x=self.pool(F.relu(self.conv2(x)))
+        x=x.view(-1, 16*5*5)
+        hidden = F.relu(self.fc1(x))
+        hidden = F.relu(self.fc2(hidden))
+        logit = self.fc3(hidden)
+        return logit
+    
+model = Model()
+optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
+#%%
+for epoch in range(1, epochs + 1):
+        train_epoch(model, trainloader, optimizer, epoch)
+        eval_epoch(model,  devloader, "Dev")
+        print("---")
+#%%
+for epoch in range(2):  # loop over the dataset multiple times
+
+    running_loss = 0.0
+    for i, data in enumerate(trainloader, 0):
+        # get the inputs; data is a list of [inputs, labels]
+        inputs, labels = data
+        
+        # zero the parameter gradients
+        optimizer.zero_grad()
+        
+        # forward + backward + optimize
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        
+        # print statistics
+        running_loss += loss.item()
+        if i % 2000 == 1999:    # print every 2000 mini-batches
+            print('[%d, %5d] loss: %.3f' %
+                  (epoch + 1, i + 1, running_loss / 2000))
+            running_loss = 0.0
+
+print('Finished Training')
     
