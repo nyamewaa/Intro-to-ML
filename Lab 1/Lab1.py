@@ -19,10 +19,6 @@ warnings.filterwarnings("ignore")
 #%% PREPROCESSING DATA
 #Read in data
 #conda install -c anaconda wget 
-!wget https://raw.githubusercontent.com/yala/MLCodeLab/master/lab1/data/beer/overall_train.p
-!wget https://raw.githubusercontent.com/yala/MLCodeLab/master/lab1/data/beer/overall_dev.p
-!wget https://raw.githubusercontent.com/yala/MLCodeLab/master/lab1/data/beer/overall_test.p
-
 
 #%%assign data to variables
 train_path = "overall_train.p"
@@ -142,7 +138,7 @@ print("Random dev error: \n {} \n \n {} \n \n{}".format(
  #specificied. The smaller the C the better the regularization. Regularization 
  #creates a cost for overfitting training data. This allows training and testing outcomes
  #to be more similar
- lr = LogisticRegression(C=.5)
+lr = LogisticRegression(C=.5)
 lr.fit(trainX, trainY)
 
 print("Logistic Regression Train:", lr.score(trainX, trainY))
