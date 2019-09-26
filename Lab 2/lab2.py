@@ -155,6 +155,7 @@ def eval_epoch(model, testloader, name):
         100. * correct / len(testloader.dataset)))
     
 #%% TRAINING THE MODEL
+    
 for epoch in range(1, epochs + 1):
     train_epoch(model, trainloader, optimizer, epoch)
     eval_epoch(model,  devloader, "Dev")
@@ -193,23 +194,31 @@ eval_epoch(model,  testloader, "Test")
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
-        self.conv1 = nn.Conv2d(3,6,5)
-        self.pool = nn.MaxPool2d(2,2)
-        self.conv2 = nn.Conv2d(6,16,5)
-        self.fc1 = nn.Linear(16*5*5, 200)
-        self.fc2 = nn.Linear(200, 200)
-        self.fc3 = nn.Linear(200, 10)
+        self.layer1 = nn.Sequential(    #defines first layer
+            nn.Conv2d(1, 32, kernel_size=5, stride=1, padding=2), #con2d is for images. conv2d(input channel, output channel, filter size, eg, 5x5, stride)
+            nn.ReLU(), #relu activation. padding is calculated from formula (width out=widthin-Filtersize in W direction + 2Padding)/stride]+1
+            nn.MaxPool2d(kernel_size=2, stride=2)) # pooling size=kernel size,  stride=downsampling by a factor 2, padding is zero by default if unspecified
+        #from first layer we can calculate size of output images using above formula
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)) #we can calculate to realize that the output size will be 7x7 images with the 64 channels specified
+        self.drop_out = nn.Dropout()  #drop out helps to avoid overfitting
+        self.fc1 = nn.Linear(7 * 7 * 64, 1000) #first fully connected layer. inout size is the image wxhxchannels and output size is specified as 1000
+        self.fc2 = nn.Linear(1000, 10) #ouput from fc1 is the number of nodes in fc2
         
-
-    def forward(self, x):
-        x=self.pool(F.relu(self.conv1(x)))
-        x=self.pool(F.relu(self.conv2(x)))
-        x=x.view(-1, 16*5*5)
-        hidden = F.relu(self.fc1(x))
-        hidden = F.relu(self.fc2(hidden))
-        logit = self.fc3(hidden)
-        return logit
+    #the above defines the layers. now we specify how the data flows through the layers
     
+    def forward(self, x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out=out.reshape(out.size(0),-1) #flattens the data dimensions  7x7x64 into 3164x1
+        out = self.drop_out(out)
+        out = self.fc1(out)
+        out=self.fc2(out)
+        return out
+        
+        
 model = Model()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
 #%%
@@ -217,29 +226,6 @@ for epoch in range(1, epochs + 1):
         train_epoch(model, trainloader, optimizer, epoch)
         eval_epoch(model,  devloader, "Dev")
         print("---")
-#%%
-for epoch in range(2):  # loop over the dataset multiple times
-
-    running_loss = 0.0
-    for i, data in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = data
         
-        # zero the parameter gradients
-        optimizer.zero_grad()
-        
-        # forward + backward + optimize
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-        
-        # print statistics
-        running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 2000))
-            running_loss = 0.0
-
-print('Finished Training')
-    
+#%% RUN MODEL ON TEST IMAGES
+eval_epoch(model,  testloader, "Test")
